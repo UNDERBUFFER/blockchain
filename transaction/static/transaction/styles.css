@@ -1,0 +1,56 @@
+#main {
+    width: 600px;
+    height: 200x;
+    background-color: salmon;
+    border: 3px solid brown;
+    display: inline-block;
+}
+
+.lds-dual-ring {
+    display: inline-block;
+    width: 80px;
+    height: 80px;
+    margin-left: 20px;
+    margin-bottom: 10px;
+}
+
+.lds-dual-ring:after {
+    content: " ";
+    display: block;
+    width: 64px;
+    height: 64px;
+    margin: 8px;
+    border-radius: 50%;
+    border: 6px solid #fff;
+    border-color: #fff plum #fff plum;
+    animation: lds-dual-ring 1.2s linear infinite;
+}
+
+@keyframes lds-dual-ring {
+    0% {
+        transform: rotate(0deg);
+    }
+    100% {
+        transform: rotate(360deg);
+    }
+}
+
+.good-status {
+    width: 100px;
+    height: 100px;
+    margin-left: 20px;
+    margin-bottom: 5px;
+    background-image: url('/static/transaction/good.png');
+    background-position: center;
+    display: inline-block;
+}
+
+.bad-status {
+    width: 90px;
+    height: 90px;
+    margin-left: 20px;
+    margin-bottom: 5px;
+    background-image: url('/static/transaction/bad.png');
+    background-position: center;
+    display: inline-block;
+}
