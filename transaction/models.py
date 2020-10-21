@@ -1,7 +1,11 @@
 
 import asyncio
+import logging
 from hashlib import sha256
 from django.db import models
+
+
+logger = logging.getLogger(__name__)
 
 
 class Transaction(models.Model):
@@ -22,6 +26,7 @@ class Transaction(models.Model):
             print(e)
             last_hash = ''
 
+        logger.info('getting hash')
         before_hash = ':'.join({
             'sender': sender,
             'recipient': kwargs.get( 'recipient', self.recipient ),
@@ -31,19 +36,40 @@ class Transaction(models.Model):
         return sha256( before_hash.encode() ).hexdigest()
 
     def set_hash(self, **kwargs):
+        logger.info('setting hash')
         self.hash = self.get_hash(**kwargs)
         return self.hash
 
-    # @classmethod
-    # def check_hashes(*cls, *objects):
-    #     for index, object in enumerate(objects):
-    #         if index != 0:
-    #             hash1 = object.get_hash( last_hash=object.hash )
-    #             hash2 = object.get_hash( last_hash=objects[index-1].hash )
-    #             if hash1 != hash2:
-    #                 return False
-    #     return True
+    def save(self, *args, **kwargs):
+        super().save(*args, **kwargs)
 
-    # @classmethod
-    # async def check_transactions(*cls):
+        loop = asyncio.get_event_loop()
+        loop.create_task(self.check_hashes( self.__class__.objects.all().order_by('id').reverse() ))
+
+
+    @classmethod
+    async def check_hashes(cls, *objects):
+
+        for index, object in enumerate(objects):
+
+            logger.info('{} processing'.format(object))
+            object.processed = True
+            object.checked = False
+            object.save()
+            await asyncio.sleep(5)
+
+            if (index + 1) < len(objects):
+                hash1 = object.get_hash( last_hash=object.hash )
+                hash2 = object.get_hash( last_hash=objects[index+1].hash )
+                if hash1 != hash2:
+                    object.processed = False
+                    object.checked = False
+                else:
+                    object.processed = False
+                    object.checked = True
+            else:
+                object.processed = False
+                object.checked = True
+            object.save()
+            await asyncio.sleep(5)
 

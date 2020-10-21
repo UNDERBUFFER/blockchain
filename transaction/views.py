@@ -15,6 +15,5 @@ class Transaction(View):
                 'serialized_object': data
             })
         except Exception as e:
-            raise
             print(e)
             return HttpResponse('<b>Error</b>')
