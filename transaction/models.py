@@ -1,7 +1,6 @@
 
-import asyncio
 import logging
-from asgiref.sync import sync_to_async
+from .tasks import check_hashes
 from hashlib import sha256
 from django.db import models
 
@@ -19,10 +18,13 @@ class Transaction(models.Model):
     checked = models.BooleanField(default=False)
     processed = models.BooleanField(default=True)
 
-    def get_hash(self, **kwargs):
+    def get_hash(self, is_existed_object=False, **kwargs):
         sender = kwargs.get( 'sender', self.sender )
         try:
-            last_hash = kwargs.get( 'last_hash', self.__class__.objects.last().hash )
+            if not is_existed_object:
+                last_hash = kwargs.get( 'last_hash', self.__class__.objects.last().hash )
+            else:
+                last_hash = self.__class__.objects.get( id=self.id-1 ).hash
         except Exception as e:
             logger.error(e)
             last_hash = ''
@@ -36,40 +38,13 @@ class Transaction(models.Model):
         }.values())
         return sha256( before_hash.encode() ).hexdigest()
 
-    def set_hash(self, **kwargs):
+    def set_hash(self, is_existed_object=False, **kwargs):
         logger.info('setting hash')
-        self.hash = self.get_hash(**kwargs)
+        self.hash = self.get_hash( is_existed_object=is_existed_object, **kwargs )
         return self.hash
 
-    def save(self, *args, **kwargs):
-        super().save(*args, **kwargs)
-
-        return self.check_hashes( *self.__class__.objects.all().order_by('id').reverse() )
-
-
-    @classmethod
-    async def check_hashes(cls, *objects):
-
-        for index, object in enumerate(objects):
-
-            logger.info('{} processing'.format(object))
-            object.processed = True
-            object.checked = False
-            object.save()
-            await asyncio.sleep(5)
-
-            if (index + 1) < len(objects):
-                hash1 = object.get_hash( last_hash=object.hash )
-                hash2 = object.get_hash( last_hash=objects[index+1].hash )
-                if hash1 != hash2:
-                    object.processed = False
-                    object.checked = False
-                else:
-                    object.processed = False
-                    object.checked = True
-            else:
-                object.processed = False
-                object.checked = True
-            object.save()
-            await asyncio.sleep(5)
-
+    def save(self, *args, check=False, **kwargs):
+        res = super().save(*args, **kwargs)
+        if check:
+            check_hashes.delay()
+        return res

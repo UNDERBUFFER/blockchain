@@ -1,5 +1,4 @@
 
-import asyncio
 import logging
 from .forms import Transfer as TransferForm
 from transaction.models import Transaction as TransactionModel
@@ -11,7 +10,7 @@ from django.views import View
 logger = logging.getLogger(__name__)
 
 
-class Transfer(request, *args, **kwargs):
+class Transfer(View):
 
     def get(self, request, *args, **kwargs):
         form = TransferForm()
@@ -19,7 +18,7 @@ class Transfer(request, *args, **kwargs):
             'form': form
         })
 
-    def post(self, request, *args, **kwargs)
+    def post(self, request, *args, **kwargs):
         data = {
             'sender': request.POST.get('sender', None),
             'recipient': request.POST.get('recipient', None),
@@ -29,9 +28,7 @@ class Transfer(request, *args, **kwargs):
         try:
             transaction = TransactionModel(**data)
             hash_id = transaction.set_hash()
-            loop = asyncio.get_event_loop()
-            task = await sync_to_async(transaction.save)()
-            loop.create_task( task )
+            transaction.save(check=True)
             return redirect('/transaction/{}'.format(hash_id))
         except Exception as e:
             logger.error(str(e))
