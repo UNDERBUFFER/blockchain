@@ -1,6 +1,7 @@
 
 import asyncio
 import logging
+from asgiref.sync import sync_to_async
 from hashlib import sha256
 from django.db import models
 
@@ -23,7 +24,7 @@ class Transaction(models.Model):
         try:
             last_hash = kwargs.get( 'last_hash', self.__class__.objects.last().hash )
         except Exception as e:
-            print(e)
+            logger.error(e)
             last_hash = ''
 
         logger.info('getting hash')
@@ -43,8 +44,7 @@ class Transaction(models.Model):
     def save(self, *args, **kwargs):
         super().save(*args, **kwargs)
 
-        loop = asyncio.get_event_loop()
-        loop.create_task(self.check_hashes( self.__class__.objects.all().order_by('id').reverse() ))
+        return self.check_hashes( *self.__class__.objects.all().order_by('id').reverse() )
 
 
     @classmethod

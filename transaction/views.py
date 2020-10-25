@@ -1,9 +1,13 @@
 
+import logging
 from .models import Transaction as TransactionModel
 from django.core import serializers
 from django.http import HttpResponse
 from django.shortcuts import render
 from django.views import View
+
+
+logger = logging.getLogger(__name__)
 
 
 class Transaction(View):
@@ -15,5 +19,5 @@ class Transaction(View):
                 'serialized_object': data
             })
         except Exception as e:
-            print(e)
+            logger.error(str(e))
             return HttpResponse('<b>Error</b>')
