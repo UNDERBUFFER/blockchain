@@ -21,7 +21,7 @@ def check_hashes():
 
         if (index + 1) < len(objects):
             hash1 = object.hash
-            hash2 = object.get_hash( is_existed_object=True, last_hash=objects[index+1].hash )
+            hash2 = object.get_hash( last_hash=objects[index+1].hash )
             if hash1 != hash2:
                 logger.warning('hash1<{}> != hash2<{}>'.format( hash1, hash2 ))
                 object.processed = False

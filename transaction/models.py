@@ -18,13 +18,14 @@ class Transaction(models.Model):
     checked = models.BooleanField(default=False)
     processed = models.BooleanField(default=True)
 
-    def get_hash(self, is_existed_object=False, **kwargs):
+    def get_hash(self, **kwargs):
         sender = kwargs.get( 'sender', self.sender )
         try:
-            if not is_existed_object:
-                last_hash = kwargs.get( 'last_hash', self.__class__.objects.last().hash )
-            else:
+            try:
                 last_hash = self.__class__.objects.get( id=self.id-1 ).hash
+            except (TypeError, self.__class__.DoesNotExist) as e:
+                logger.error(e)
+                last_hash = kwargs.get( 'last_hash', self.__class__.objects.last().hash )
         except Exception as e:
             logger.error(e)
             last_hash = ''
@@ -38,12 +39,13 @@ class Transaction(models.Model):
         }.values())
         return sha256( before_hash.encode() ).hexdigest()
 
-    def set_hash(self, is_existed_object=False, **kwargs):
+    def set_hash(self, **kwargs):
         logger.info('setting hash')
-        self.hash = self.get_hash( is_existed_object=is_existed_object, **kwargs )
+        self.hash = self.get_hash( **kwargs )
         return self.hash
 
     def save(self, *args, check=False, **kwargs):
+        self.set_hash()
         res = super().save(*args, **kwargs)
         if check:
             check_hashes.delay()
