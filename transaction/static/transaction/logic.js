@@ -1,20 +1,55 @@
 
-const mainDiv = document.getElementById('main')
-const status = document.getElementsByClassName('lds-dual-ring')[0]
+const TRANSACTION_URL = `${window.location.origin}${window.location.pathname}`
+const MAIN_DIV = document.getElementById('main')
+
+function getJsonResponse() {
+    let receivedObject = JSON.parse( MAIN_DIV.innerText )
+    setStatus(receivedObject)
+    const ready = {
+        processed: receivedObject.processed,
+        checked: receivedObject.checked
+    }
+    delete receivedObject.processed
+    delete receivedObject.checked
+
+    MAIN_DIV.innerText = JSON.stringify( receivedObject, undefined, 2 )
+    return ready
+}
 
 
-let receivedObject = JSON.parse( mainDiv.innerText )[0]['fields']
+function setStatus(jsonObject) {
+    const status = document.getElementById('process')
+    if (!status) return true
+    if (jsonObject.processed === true && jsonObject.checked === false)
+        status.className = 'lds-dual-ring'
+    else if (jsonObject.processed === false && jsonObject.checked === true)
+        status.className = 'good-status'
+    else
+        status.className = 'bad-status'
+
+    return true
+}
 
 
-if (receivedObject.processed === true && receivedObject.checked === false)
-    status.className = 'lds-dual-ring'
-else if (receivedObject.processed === false && receivedObject.checked === true)
-    status.className = 'good-status'
-else
-    status.className = 'bad-status'
+function loop() {
+    fetch(`${TRANSACTION_URL}?type=json`).then(response => {
+        return response.json()
+    }).then(receivedObject => {
+        console.log(receivedObject)
+        if (!receivedObject.processed) {
+            setStatus(receivedObject)
+            setTimeout(() => {
+                document.location.reload(true)
+                loop(receivedObject)
+            }, 60000)
+        }
+        else setTimeout(() => {
+                loop(receivedObject)
+            }, 10000)
+        
+    })
+}
 
-delete receivedObject.processed
-delete receivedObject.checked
 
-
-mainDiv.innerText = JSON.stringify( receivedObject, undefined, 2 )
+getJsonResponse()
+loop()
